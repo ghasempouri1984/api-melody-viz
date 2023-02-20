@@ -31,7 +31,13 @@ def chart():
     data = results["results"]["bindings"]
     x_col = "year"
     y_col = "title"
-    fig = px.bar(x=[item[x_col]["value"] for item in data], y=[item[y_col]["value"] for item in data])
+    if len(data) == 0:
+        return "No results found"
+    else:
+        #fig = px.bar(x=[item[x_col]["value"] for item in data], y=[item[y_col]["value"] for item in data])
+        #fig = px.line(x=[item["year"]["value"] for item in data], y=[item["title"]["value"] for item in data])
+        fig = px.bar(x=[item["title"]["value"] for item in data], y=[item["year"]["value"] for item in data])
+
 
     format = request.args.get('format', 'html')
     if format == 'html':
