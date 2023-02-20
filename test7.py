@@ -4,7 +4,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 app = Flask(__name__)
 
-@app.route('/chart', methods=['GET'])
+@app.route('/human_count', methods=['GET'])
 def chart():
     query_template = """
         SELECT (COUNT(?human) AS ?count)
