@@ -19,6 +19,7 @@ def chart():
     chart_fn = chart_types[chart_type]
 
     sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
+    sparql.setTimeout(120)
     sparql.setQuery(query_template)
     sparql.setReturnFormat(JSON)
     results = sparql.query().convert()
