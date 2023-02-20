@@ -25,16 +25,12 @@ def plot():
     # Extract data from results
     data = results["results"]["bindings"]
     count = data[0]["count"]["value"]
-    
-    # Get custom labels from query result, default to 'Count' if not specified
-    label_x = data[0]["label_x"]["value"] if "label_x" in data[0] else 'Count'
-    label_y = data[0]["label_y"]["value"] if "label_y" in data[0] else 'Count'
 
     # Create chart based on chart type
     if chart_type == 'bar':
-        fig = px.bar(x=[label_x], y=[count], labels={'x':'', 'y':label_y})
+        fig = px.bar(x=['Humans'], y=[count], labels={'x':'', 'y':'Count of Humans'})
     elif chart_type == 'pie':
-        fig = px.pie(values=[count], names=[label_x])
+        fig = px.pie(values=[count], names=['Humans'])
     else:
         return 'Invalid chart type', 400
 
