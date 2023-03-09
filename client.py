@@ -32,6 +32,7 @@ def plotChart(query, chart_type, endpoint, format):
         var_resp=fig.to_html()
     elif format == 'png':
         var_resp = fig.to_image(format='png')
+        
     else:
         var_resp='Invalid format'
 
