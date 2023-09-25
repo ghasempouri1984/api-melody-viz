@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization App</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Visualization App</h1>
+    <form id="visualization-form">
+        <label for="query">SPARQL Query:</label><br>
+        <textarea id="query" name="query" rows="4" cols="50" required></textarea><br>
+        
+        <label for="chart_type">Chart Type:</label><br>
+        <select id="chart_type" name="chart_type" required>
+            <option value="bar">Bar</option>
+            <option value="pie">Pie</option>
+            <option value="scatter">Scatter</option>
+        </select><br>
+
+        <div id="scatter-options" style="display: none;">
+            <label for="scatter_x">Scatter X Variable:</label><br>
+            <input type="text" id="scatter_x" name="scatter_x"><br>
+            <label for="scatter_y">Scatter Y Variable:</label><br>
+            <input type="text" id="scatter_y" name="scatter_y"><br>
+        </div>
+
+        <label for="format">Format:</label><br>
+        <select id="format" name="format" required>
+            <option value="html">HTML</option>
+            <option value="png">PNG</option>
+        </select><br>
+
+        <label for="endpoint">SPARQL Endpoint (Optional):</label><br>
+        <input type="text" id="endpoint" name="endpoint" placeholder="https://query.wikidata.org/sparql"><br>
+
+        <input type="submit" value="Submit">
+    </form>
+    <div id="result"></div>
+
+    <script>
+        $("#chart_type").on("change", function() {
+            if ($(this).val() === "scatter") {
+                $("#scatter-options").show();
+            } else {
+                $("#scatter-options").hide();
+            }
+        });
+    
+        $("#visualization-form").on("submit", function(event) {
+            event.preventDefault();
+            const payload = {
+                query: $("#query").val(),
+                chart_type: $("#chart_type").val(),
+                scatter_x: $("#scatter_x").val() || undefined,
+                scatter_y: $("#scatter_y").val() || undefined,
+                format: $("#format").val(),
+                endpoint: $("#endpoint").val() || undefined
+            };
+            $.ajax({
+                url: "/plot",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function(response) {
+                    if (payload.format === "html") {
+                        $("#result").html(response);
+                    } else if (payload.format === "png") {
+                        const img = new Image();
+                        img.src = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(response)));
+                        $("#result").html(img);
+                    }
+                },
+                error: function(error) {
+                    $("#result").text("An error occurred: " + error.responseJSON.error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
