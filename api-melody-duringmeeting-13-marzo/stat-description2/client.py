@@ -115,8 +115,6 @@ def _prepare_bar_pie_data(x_var: str, y_var: str, values: dict) -> tuple:
 
     return x_data, y_data
 
-
-
 def convert_to_number(val):
     if val is None:
         return None
@@ -157,6 +155,10 @@ def _create_visualization_(df: pd.DataFrame, x_var: str, y_var: str, scatter_lab
         return 'Invalid format'
 
 def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str):
+    # Verify if variables are appropriate for calculations
+    if not all(isinstance(x, (int, float)) for x in df[y_var]):
+        return "The Y variable must contain numerical values for plotting.", None
+
 
     if chart_type == 'bar':
         fig = px.bar(df, x=x_var, y=y_var, labels={x_var: x_var, y_var: y_var}, title="Counts by Label", height=500, width=500)
