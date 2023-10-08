@@ -34,6 +34,14 @@
             <label for="frequency_bar">Frequency:</label><br>
             <input type="text" id="frequency_bar" name="y_var"><br>
         </div>
+
+        <div id="pie-options" style="display: none;">
+            <label for="label_pie">Label:</label><br>
+            <input type="text" id="label_pie" name="x_var"><br>
+            <label for="value_pie">Value:</label><br>
+            <input type="text" id="value_pie" name="y_var"><br>
+        </div>
+        
         
         <label for="format">Format:</label><br>
         <select id="format" name="format" required>
@@ -51,21 +59,36 @@
 
     <script>
         $("#chart_type").on("change", function() {
-            if ($(this).val() === "scatter") {
+            const chartType = $(this).val();
+            if (chartType === "scatter") {
                 $("#scatter-options").show();
                 $("#bar-options").hide();
-            } else if ($(this).val() === "bar") {
+                $("#pie-options").hide();
+            } else if (chartType === "bar") {
                 $("#scatter-options").hide();
                 $("#bar-options").show();
-            } else {
+                $("#pie-options").hide();
+            } else if (chartType === "pie") {
                 $("#scatter-options").hide();
                 $("#bar-options").hide();
+                $("#pie-options").show();
             }
         });
     
         $("#visualization-form").on("submit", function(event) {
             event.preventDefault();
+            const chartType = $("#chart_type").val();  // Get the chart type again here
+
             const payload = {
+                query: $("#query").val(),
+                chart_type: chartType,
+                x_var: chartType === "scatter" ? $("#x_var_scatter").val() : (chartType === "bar" ? $("#label_bar").val() : $("#label_pie").val()),
+                y_var: chartType === "scatter" ? $("#y_var_scatter").val() : (chartType === "bar" ? $("#frequency_bar").val() : $("#value_pie").val()),
+                scatter_label: $("#scatter_label").val() || undefined,
+                format: $("#format").val(),
+                endpoint: $("#endpoint").val() || undefined
+            };
+            /*const payload = {
                 query: $("#query").val(),
                 chart_type: $("#chart_type").val(),
                 x_var: $("#chart_type").val() === "scatter" ? $("#x_var_scatter").val() : $("#label_bar").val(),
@@ -73,15 +96,13 @@
                 scatter_label: $("#scatter_label").val() || undefined,
                 format: $("#format").val(),
                 endpoint: $("#endpoint").val() || undefined
-            };
+            };*/
             $.ajax({
                 url: "/plot",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function(response) {
-                    console.log("Ajax request was successful. Response received:", response);  // Debug line
-
                     if (payload.format === "html") {
                         $("#result").html(response.fig);
                         
@@ -94,8 +115,7 @@
                     } else if (payload.format === "png") {
                         const img = new Image();
                         img.src = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(response.fig)));
-                        //$("#result").html(img);
-                        $("#result").empty().append(img);  // Modified this line
+                        $("#result").html(img);
                         
                         // Handle statistics
                         if (response.stats) {
@@ -110,14 +130,8 @@
                     }
                 },
                 error: function(error) {
-                    console.log("Error details:", error); // Add this line
-                    if (error.responseJSON && error.responseJSON.error) {
-                        $("#result").text("An error occurred: " + error.responseJSON.error);
-                    } else {
-                        $("#result").text("An error occurred. Details unavailable.");
-                    }
+                    $("#result").text("An error occurred: " + error.responseJSON.error);
                 }
-
             });
             
         });

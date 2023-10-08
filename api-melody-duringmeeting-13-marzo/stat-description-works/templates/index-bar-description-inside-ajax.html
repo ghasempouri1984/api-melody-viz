@@ -80,22 +80,32 @@
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function(response) {
-                    console.log("Ajax request was successful. Response received:", response);  // Debug line
-
                     if (payload.format === "html") {
                         $("#result").html(response.fig);
                         
                         // Handle statistics
-                        if (response.stats && response.stats.summary) {
-                            let statsHtml = '<h2>Statistical Summary</h2>';
-                            statsHtml += '<p>' + response.stats.summary + '</p>';
+                        if (response.stats) {
+                            let statsHtml = '<h2>Descriptive Statistics Summary</h2>';
+
+                            // Calculate max, min, and total
+                            let maxCount = Math.max(...response.stats.counts);
+                            let minCount = Math.min(...response.stats.counts);
+                            let totalCount = response.stats.counts.reduce((a, b) => a + b, 0);
+                            let maxCategory = response.stats.categories[response.stats.counts.indexOf(maxCount)];
+                            let minCategory = response.stats.categories[response.stats.counts.indexOf(minCount)];
+                            let totalCategories = response.stats.categories.length;
+
+                            // Generate description
+                            statsHtml += '<p>The category with the highest frequency is "' + maxCategory + '" with a count of ' + maxCount + '.</p>';
+                            statsHtml += '<p>The category with the lowest frequency is "' + minCategory + '" with a count of ' + minCount + '.</p>';
+                            statsHtml += '<p>The total count across all ' + totalCategories + ' categories is ' + totalCount + '.</p>';
+
                             $("#stats").html(statsHtml);
                         }
                     } else if (payload.format === "png") {
                         const img = new Image();
                         img.src = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(response.fig)));
-                        //$("#result").html(img);
-                        $("#result").empty().append(img);  // Modified this line
+                        $("#result").html(img);
                         
                         // Handle statistics
                         if (response.stats) {
@@ -110,14 +120,8 @@
                     }
                 },
                 error: function(error) {
-                    console.log("Error details:", error); // Add this line
-                    if (error.responseJSON && error.responseJSON.error) {
-                        $("#result").text("An error occurred: " + error.responseJSON.error);
-                    } else {
-                        $("#result").text("An error occurred. Details unavailable.");
-                    }
+                    $("#result").text("An error occurred: " + error.responseJSON.error);
                 }
-
             });
             
         });

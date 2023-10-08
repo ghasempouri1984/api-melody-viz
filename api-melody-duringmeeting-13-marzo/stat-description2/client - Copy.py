@@ -6,8 +6,6 @@ import re  # Add this import to use regular expressions
 import pandas as pd
 from typing import List
 from scipy.stats import linregress
-from pandas.api.types import is_numeric_dtype
-
 
 
 def extract_variable_names(query):
@@ -46,13 +44,6 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     print(f"Prepared values: {values}")
     
     x_var, y_var = _identify_variables(variable_names, values, scatter_x, scatter_y)
-    
-    # Add debug line here to check the variables being used to create the DataFrame
-    print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
-    
-    if chart_type == 'bar':
-        x_data, y_data = _prepare_bar_pie_data(x_var, y_var, values)  # Make sure x_var, y_var match SPARQL results
-        df = pd.DataFrame({x_var: x_data, y_var: y_data})
 
     # Create DataFrame and visualize it.
     if chart_type == 'scatter':
@@ -61,23 +52,14 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     else:
         x_data, y_data = _prepare_bar_pie_data(x_var, y_var, values)
         df = pd.DataFrame({x_var: x_data, y_var: y_data})
-    
-    # Add this line to check the DataFrame before plotting
-    print("DataFrame before plotting:")
-    print(df)
-    
-    # Remove the column labeled 'None' if it exists
-    if None in df.columns:
-        del df[None]
-    
-    # Convert numerical columns to the appropriate data type
-    df[y_var] = pd.to_numeric(df[y_var], errors='coerce')
-
+        
     # Add debugging statements here
     print("Data types in DataFrame before plotting:")
     print(df.dtypes)
     print("Checking for None or NaN values in DataFrame:")
     print(df.isna().sum())
+
+    return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format)
 
     return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format)
 
@@ -118,6 +100,7 @@ def _prepare_scatter_data(x_var: str, y_var: str, label_var: str, values: dict) 
 
 
 def _prepare_bar_pie_data(x_var: str, y_var: str, values: dict) -> tuple:
+
     x_data = []
     y_data = []
 
@@ -152,64 +135,10 @@ def _convert_values_to_proper_type(values: list) -> list:
     return result
 
 def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str):
-    
-    # Check for an empty DataFrame
-    #if df.empty:
-    #    return "The DataFrame is empty. Cannot generate plot.", None
-    
-    # Debugging: Inspect the first few rows of the DataFrame
-    print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
-    print("DataFrame head:")
-    print(df.head())
-    # Debugging: Check the data types of each column
-    print("Data types in DataFrame:")
-    print(df.dtypes)
-    
-    # Numeric conversion for scatter plot
-    #if chart_type == 'scatter':
-     #   try:
-      #      df[x_var] = pd.to_numeric(df[x_var])
-       # except Exception as e:
-        #    return f"Error in converting x_var to numeric for {chart_type} chart: {e}", None
-
-    # Check if the specified columns exist in DataFrame
-    if x_var not in df.columns or y_var not in df.columns:
-        return f"Columns {x_var} or {y_var} not found in DataFrame.", None
-    
-     # Verify if Y variable is appropriate for calculations
-    if not (df[y_var].dtype in ['int64', 'float64']):
-        return "The Y variable must contain numerical values for plotting.", None
-    
-    # Debugging: Validate Variable Names
-    print(f"Variable names: x_var = {x_var}, y_var = {y_var}")
-    
-    # Debugging: Check for NaN or None values in x_var and y_var
-    print("NaN or None counts:")
-    print(df[x_var].isna().sum(), df[y_var].isna().sum())
-    
-    # Debugging: Try converting x_var to numeric if it isn't already
-    #try:
-    #    df[x_var] = pd.to_numeric(df[x_var])
-    #except Exception as e:
-    #    print(f"Error in converting x_var: {e}")
-    
-    # Conditional conversion based on chart type
-    if chart_type in ['scatter', 'pie']:  # These types generally require numeric x_var
-        try:
-            df[x_var] = pd.to_numeric(df[x_var])
-        except Exception as e:
-            return f"Error in converting x_var to numeric for {chart_type} chart: {e}", None
-    
-    # Check if x_var and y_var are appropriate for calculations
+    # Verify if variables are appropriate for calculations
     if not all(isinstance(x, (int, float)) for x in df[y_var]):
-        return f"The Y variable must contain numerical values for plotting a {chart_type} chart.", None
+        return "The Y variable must contain numerical values for plotting.", None
 
-    if chart_type == 'scatter' and not all(isinstance(x, (int, float)) for x in df[x_var]):
-        return f"The X variable must contain numerical values for plotting a {chart_type} chart.", None
-    
-    # Explicit conversion
-    df[y_var] = pd.to_numeric(df[y_var], errors='coerce')
-    df[x_var] = pd.to_numeric(df[x_var], errors='coerce')
 
     if chart_type == 'bar':
         fig = px.bar(df, x=x_var, y=y_var, labels={x_var: x_var, y_var: y_var}, title="Counts by Label", height=500, width=500)
@@ -237,21 +166,48 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
         fig = px.pie(df, values=y_var, names=x_var, title="Distribution by Label")
         # Calculate statistics here if needed
     elif chart_type == 'scatter':
+        '''
+        fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
+        # Calculate statistics here if needed
 
-        if not (df[x_var].dtype in ['int64', 'float64'] and df[y_var].dtype in ['int64', 'float64']):
-          return "For scatter plots, both X and Y variables must be numeric.", None
+        # Calculate statistics
+        x_values = df[x_var]
+        y_values = df[y_var]
+        stats = {
+            'x_min': x_values.min(),
+            'x_max': x_values.max(),
+            'x_mean': x_values.mean(),
+            'x_median': x_values.median(),
+            'y_min': y_values.min(),
+            'y_max': y_values.max(),
+            'y_mean': y_values.mean(),
+            'y_median': y_values.median(),
+        }
 
-        # Your existing scatter plot code remains mostly unchanged
+        # Generate summary
+        summary = f"The minimum and maximum values for the x variable are {stats['x_min']} and {stats['x_max']}, respectively. The mean and median values are {stats['x_mean']} and {stats['x_median']}, respectively. "
+        summary += f"The minimum and maximum values for the y variable are {stats['y_min']} and {stats['y_max']}, respectively. The mean and median values are {stats['y_mean']} and {stats['y_median']}, respectively. "
+
+        stats['summary'] = summary
+        '''
+
+        # Generate plot
         fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
         
-        # Fill with zeros for NaN
+
+        # Fill with zeros
         df[x_var] = df[x_var].fillna(0)
         df[y_var] = df[y_var].fillna(0)
-        
+        # Calculate statistics
+        x_values = df[x_var]
+        y_values = df[y_var]
+
         try:
-            # Calculate correlation and linear regression
-            correlation = df[x_var].corr(df[y_var])
-            slope, intercept, r_value, p_value, std_err = linregress(df[x_var], df[y_var])
+        # Calculate correlation
+            correlation = x_values.corr(y_values)
+
+            # Calculate linear regression
+            slope, intercept, r_value, p_value, std_err = linregress(x_values, y_values)
         except Exception as e:
             print("Error calculating statistics: ", str(e))
             correlation, slope, intercept, r_value, p_value, std_err = [None]*6
@@ -264,7 +220,7 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
             'p_value': p_value,
             'std_err': std_err
         }
-        
+
         # Generate summary
         summary = f"The correlation between the variables is {round(stats['correlation'], 2)}. "
         summary += f"The equation of the regression line is y = {round(stats['slope'], 2)}*x + {round(stats['intercept'], 2)}. "

@@ -47,7 +47,6 @@
         <input type="submit" value="Submit">
     </form>
     <div id="result"></div>
-    <div id="stats"></div>
 
     <script>
         $("#chart_type").on("change", function() {
@@ -80,44 +79,17 @@
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function(response) {
-                    console.log("Ajax request was successful. Response received:", response);  // Debug line
-
                     if (payload.format === "html") {
-                        $("#result").html(response.fig);
-                        
-                        // Handle statistics
-                        if (response.stats && response.stats.summary) {
-                            let statsHtml = '<h2>Statistical Summary</h2>';
-                            statsHtml += '<p>' + response.stats.summary + '</p>';
-                            $("#stats").html(statsHtml);
-                        }
+                        $("#result").html(response);
                     } else if (payload.format === "png") {
                         const img = new Image();
-                        img.src = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(response.fig)));
-                        //$("#result").html(img);
-                        $("#result").empty().append(img);  // Modified this line
-                        
-                        // Handle statistics
-                        if (response.stats) {
-                            let statsHtml = '<h2>Statistics</h2>';
-                            statsHtml += '<ul>';
-                            for (let i = 0; i < response.stats.categories.length; i++) {
-                                statsHtml += '<li>' + response.stats.categories[i] + ': Count = ' + response.stats.counts[i] + ', Proportion = ' + response.stats.proportions[i] + '</li>';
-                            }
-                            statsHtml += '</ul>';
-                            $("#stats").html(statsHtml);
-                        }
+                        img.src = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, new Uint8Array(response)));
+                        $("#result").html(img);
                     }
                 },
                 error: function(error) {
-                    console.log("Error details:", error); // Add this line
-                    if (error.responseJSON && error.responseJSON.error) {
-                        $("#result").text("An error occurred: " + error.responseJSON.error);
-                    } else {
-                        $("#result").text("An error occurred. Details unavailable.");
-                    }
+                    $("#result").text("An error occurred: " + error.responseJSON.error);
                 }
-
             });
             
         });

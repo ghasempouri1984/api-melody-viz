@@ -8,49 +8,41 @@ import client
 app = Flask(__name__)
 
 @app.route('/plot', methods=['POST', 'GET'])
-
-@app.route('/plot', methods=['POST', 'GET'])
 def plot():
     if request.method == 'GET':
-        return render_template('index.html')
+        return render_template('index.html') 
                              
     if request.method == 'POST':
         try:
-            # Get data from JSON payload
+            # Get query and chart type from JSON payload
             req_data = request.get_json()
             query = req_data.get('query')
             chart_type = req_data.get('chart_type', 'bar')
             format = req_data.get('format', 'html')
 
-            # Validate format
-            if format not in ['html', 'png']:
-                return jsonify({"error": "Invalid format"}), 400
-
-            # Debug lines
-            print("About to call the plotting function.")
-
-            # Additional code for plotting
+            # Get SPARQL endpoint from JSON payload, default to Wikidata if not specified
             endpoint = req_data.get('endpoint', 'https://query.wikidata.org/sparql')
+
+            # Get scatter plot variables from JSON payload
             x_var = req_data.get('x_var')
             y_var = req_data.get('y_var')
             scatter_label = req_data.get('scatter_label')
 
-            # Call the plotting function
+            #resp = client.plotChart(query, chart_type, x_var, y_var, scatter_label, endpoint, format)
             fig, stats = client.plotChart(query, chart_type, x_var, y_var, scatter_label, endpoint, format)
-
-            # Debug lines
-            print("Plotting function was called.")
-            print("Preparing to send response...")
-
-            # Prepare and send the response
-            response = {'fig': fig, 'stats': stats}
-            #print("Sending response:", response)
-            return jsonify(response)
             
+            #according to format we return different response
+            if format == 'html':
+                return jsonify({'fig': fig, 'stats': stats})
+            elif format == 'png':
+                return jsonify({'fig': fig, 'stats': stats})
+            else:
+                return jsonify({"error": "Invalid format"}), 400
+         
+            #according to format we return different response
+            #return resp
         except Exception as e:
-            print("An exception occurred:", e)  # Debug line for exceptions
             return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run()
