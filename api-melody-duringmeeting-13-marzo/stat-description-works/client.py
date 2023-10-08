@@ -244,67 +244,69 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
         # Initialize stats to an empty dictionary
         stats = {}
     elif chart_type == 'scatter':
-        '''
-        fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
-        # Calculate statistics here if needed
+        if df[x_var].dtype in ['float64', 'int64'] and df[y_var].dtype in ['float64', 'int64']:
+            '''
+            fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
+            # Calculate statistics here if needed
 
-        # Calculate statistics
-        x_values = df[x_var]
-        y_values = df[y_var]
-        stats = {
-            'x_min': x_values.min(),
-            'x_max': x_values.max(),
-            'x_mean': x_values.mean(),
-            'x_median': x_values.median(),
-            'y_min': y_values.min(),
-            'y_max': y_values.max(),
-            'y_mean': y_values.mean(),
-            'y_median': y_values.median(),
-        }
+            # Calculate statistics
+            x_values = df[x_var]
+            y_values = df[y_var]
+            stats = {
+                'x_min': x_values.min(),
+                'x_max': x_values.max(),
+                'x_mean': x_values.mean(),
+                'x_median': x_values.median(),
+                'y_min': y_values.min(),
+                'y_max': y_values.max(),
+                'y_mean': y_values.mean(),
+                'y_median': y_values.median(),
+            }
 
-        # Generate summary
-        summary = f"The minimum and maximum values for the x variable are {stats['x_min']} and {stats['x_max']}, respectively. The mean and median values are {stats['x_mean']} and {stats['x_median']}, respectively. "
-        summary += f"The minimum and maximum values for the y variable are {stats['y_min']} and {stats['y_max']}, respectively. The mean and median values are {stats['y_mean']} and {stats['y_median']}, respectively. "
+            # Generate summary
+            summary = f"The minimum and maximum values for the x variable are {stats['x_min']} and {stats['x_max']}, respectively. The mean and median values are {stats['x_mean']} and {stats['x_median']}, respectively. "
+            summary += f"The minimum and maximum values for the y variable are {stats['y_min']} and {stats['y_max']}, respectively. The mean and median values are {stats['y_mean']} and {stats['y_median']}, respectively. "
 
-        stats['summary'] = summary
-        '''
+            stats['summary'] = summary
+            '''
 
-        # Generate plot
-        fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
-        
+            # Generate plot
+            fig = px.scatter(df, x=x_var, y=y_var, hover_data=[scatter_label], labels={x_var: x_var, y_var: y_var}, title=f"{x_var} vs {y_var}", height=500, width=500)
+            
 
-        # Fill with zeros
-        df[x_var] = df[x_var].fillna(0)
-        df[y_var] = df[y_var].fillna(0)
-        # Calculate statistics
-        x_values = df[x_var]
-        y_values = df[y_var]
+            # Fill with zeros
+            df[x_var] = df[x_var].fillna(0)
+            df[y_var] = df[y_var].fillna(0)
+            # Calculate statistics
+            x_values = df[x_var]
+            y_values = df[y_var]
 
-        try:
-        # Calculate correlation
-            correlation = x_values.corr(y_values)
+            try:
+            # Calculate correlation
+                correlation = x_values.corr(y_values)
 
-            # Calculate linear regression
-            slope, intercept, r_value, p_value, std_err = linregress(x_values, y_values)
-        except Exception as e:
-            print("Error calculating statistics: ", str(e))
-            correlation, slope, intercept, r_value, p_value, std_err = [None]*6
+                # Calculate linear regression
+                slope, intercept, r_value, p_value, std_err = linregress(x_values, y_values)
+            except Exception as e:
+                print("Error calculating statistics: ", str(e))
+                correlation, slope, intercept, r_value, p_value, std_err = [None]*6
 
-        stats = {
-            'correlation': correlation,
-            'slope': slope,
-            'intercept': intercept,
-            'r_value': r_value,
-            'p_value': p_value,
-            'std_err': std_err
-        }
+            stats = {
+                'correlation': correlation,
+                'slope': slope,
+                'intercept': intercept,
+                'r_value': r_value,
+                'p_value': p_value,
+                'std_err': std_err
+            }
 
-        # Generate summary
-        summary = f"The correlation between the variables is {round(stats['correlation'], 2)}. "
-        summary += f"The equation of the regression line is y = {round(stats['slope'], 2)}*x + {round(stats['intercept'], 2)}. "
-        summary += f"The r-squared value is {round(stats['r_value']**2, 2)}, the p-value is {round(stats['p_value'], 2)}, and the standard error is {round(stats['std_err'], 2)}."
-        stats['summary'] = summary
-
+            # Generate summary
+            summary = f"The correlation between the variables is {round(stats['correlation'], 2)}. "
+            summary += f"The equation of the regression line is y = {round(stats['slope'], 2)}*x + {round(stats['intercept'], 2)}. "
+            summary += f"The r-squared value is {round(stats['r_value']**2, 2)}, the p-value is {round(stats['p_value'], 2)}, and the standard error is {round(stats['std_err'], 2)}."
+            stats['summary'] = summary
+        else:
+            return "Both x and y variables must be numerical for a scatter plot", None
 
     else:
         return 'Invalid chart type', None
