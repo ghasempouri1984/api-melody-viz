@@ -1,0 +1,47 @@
+.app-body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color:#adb5bd;
+}
+
+.app-title {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.app-form {
+    margin: auto;
+    /*width: 80%;*/
+    background-color: #adb5bd;
+}
+
+label {
+    font-weight: bold;
+}
+
+/* For elements you want to specifically override */
+input[type="submit"] {
+    cursor: pointer;
+}
+
+textarea, select, input[type="text"], input[type="submit"] {
+    display: block;
+    margin-top: 10px;
+    /*width: 100%;*/
+}
+
+input[type="submit"] {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.chart-result, .chart-stats {
+    margin-top: 30px;
+    text-align: left;
+}

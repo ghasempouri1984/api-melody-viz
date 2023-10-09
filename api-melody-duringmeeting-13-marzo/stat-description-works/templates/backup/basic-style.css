@@ -1,0 +1,40 @@
+.app-body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.app-title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.app-form {
+    margin: auto;
+    width: 80%;
+}
+
+label {
+    font-weight: bold;
+}
+
+textarea, select, input[type="text"], input[type="submit"] {
+    display: block;
+    margin-top: 10px;
+    width: 100%;
+}
+
+input[type="submit"] {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.chart-result, .chart-stats {
+    margin-top: 30px;
+    text-align: center;
+}
