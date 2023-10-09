@@ -1,18 +1,23 @@
-.app-body {
+.main-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.app-form {
+    flex: 1;
     font-family: Arial, sans-serif;
     margin: 20px;
-    background-color:#adb5bd;
+    background-color: white;
+}
+
+.results-container {
+    flex: 1;
+    margin: 20px;
 }
 
 .app-title {
     text-align: left;
     margin-bottom: 20px;
-}
-
-.app-form {
-    margin: auto;
-    /*width: 80%;*/
-    background-color: #adb5bd;
 }
 
 label {
