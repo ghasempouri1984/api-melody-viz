@@ -9,6 +9,7 @@ from scipy.stats import linregress
 
 
 def extract_variable_names(query):
+    debug_messages = []  # Initialize debug messages list
     select_pattern = r"SELECT\s+(?P<vars>.*?)\s*WHERE"
     select_vars = re.search(select_pattern, query, re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
@@ -17,12 +18,15 @@ def extract_variable_names(query):
         var_pattern = r'\?(?P<var>\w+)'
         variable_names = list(set(re.findall(var_pattern, select_vars_str)))
         print(f"Extracted variable names: {variable_names}")
-        return variable_names
+        debug_messages.append(f"Extracted variable names: {variable_names}")
+        return variable_names, debug_messages
     else:
+        debug_messages.append("No SELECT clause found in query.")
         print("No SELECT clause found in query.")
-        return []
+        return [], debug_messages
 
 def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatter_label: str, endpoint: str, format: str):
+    debug_messages = []  # Initialize the list for collecting debug messages
     # Initialize the SPARQL client.
     sparql = SPARQLWrapper(endpoint)
     sparql.setQuery(query)
@@ -35,13 +39,15 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     #print(json.dumps(results, indent=4))
 
     # Extract variable names from the query
-    variable_names = extract_variable_names(query)
+    variable_names, new_debug = extract_variable_names(query)
+    debug_messages.extend(new_debug)  # Add messages from extract_variable_names
 
     # Extract data from results
     data = results["results"]["bindings"]
     # Debugging: Print available keys in each entry of data
     print(f"Debugging: Available keys in data: {[list(entry.keys()) for entry in data]}")
-
+    debug_messages.append(f"Debugging: Available keys in data: {[list(entry.keys()) for entry in data]}")
+    
     # Prepare data for plotting.
     values = {var: [entry[var]["value"] if var in entry else None for entry in data] for var in variable_names}
     #print(f"Prepared values: {values}")
@@ -49,6 +55,10 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     # Debugging Step 1: Print values dictionary
     print("Debug Step 1 - Values Dictionary:")
     print(values)
+    
+    debug_messages.append("Debug Step 1 - Values Dictionary:")
+    debug_messages.append(str(values))
+    
     
     x_var, y_var = _identify_variables(variable_names, values, scatter_x, scatter_y)
     
@@ -58,7 +68,9 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
 
     # Add debug line here to check the variables being used to create the DataFrame
     print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
-
+    debug_messages.append(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
+    
+    
     # Create DataFrame and visualize it.
     if chart_type == 'scatter':
         x_data, y_data, labels = _prepare_scatter_data(x_var, y_var, scatter_label, values)
@@ -89,14 +101,17 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     # Add this line to check the DataFrame before plotting
     print("DataFrame before plotting:")
     print(df)
-
+    debug_messages.append("DataFrame before plotting:\n")
+    debug_messages.append(str(df))
     # Add debugging statements here
     print("Data types in DataFrame before plotting:")
     print(df.dtypes)
     print("Checking for None or NaN values in DataFrame:")
     print(df.isna().sum())
+    debug_messages.append("Checking for None or NaN values in DataFrame:\n")
+    debug_messages.append(str(df.isna().sum()))
 
-    return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format)
+    return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format, debug_messages)
 
 
 def _identify_variables(variable_names: List[str], values: dict, scatter_x: str, scatter_y: str) -> tuple:
@@ -196,7 +211,7 @@ def _convert_values_to_proper_type(values: list) -> list:
                 result.append(val)
     return result
 
-def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str):
+def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str, debug_messages=[]):
     
     # Debugging: Inspect the first few rows of the DataFrame
     print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
@@ -219,9 +234,16 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
     if chart_type == 'bar':
         fig = px.bar(df, x=x_var, y=y_var, labels={x_var: x_var, y_var: y_var}, title="Counts by Label", height=500, width=500)
 
+        # Record the original number of rows for later comparison
+        original_row_count = len(df)
+        # Filter out rows where x_var is NaN
+        df_filtered = df.dropna(subset=[x_var])
+        # Record the number of rows after filtering
+        filtered_row_count = len(df_filtered)
+        
         # Calculate statistics
-        counts = df[y_var]
-        categories = df[x_var]
+        counts = df_filtered[y_var]
+        categories = df_filtered[x_var]
         stats = {
             'max_count': counts.max(),
             'min_count': counts.min(),
@@ -232,9 +254,36 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
         }
 
         # Generate summary
-        summary = f"The category with the highest frequency is '{stats['max_category']}' with a count of {stats['max_count']}. "
-        summary += f"The category with the lowest frequency is '{stats['min_category']}' with a count of {stats['min_count']}. "
-        summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        #summary = f"The category with the highest frequency is '{stats['max_category']}' with a count of {stats['max_count']}. "
+        #summary += f"The category with the lowest frequency is '{stats['min_category']}' with a count of {stats['min_count']}. "
+        #summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        
+        # Generate a detailed summary for Bar Chart
+        summary = "Statistical Summary of Bar Chart:\n"
+        summary += f"1. Total Categories: The bar chart represents {stats['total_categories']} distinct categories.\n"
+        summary += f"2. Total Count: The aggregate count across all categories is {stats['total_count']}.\n"
+        summary += f"3. Most Frequent Category: The category '{stats['max_category']}' appears most frequently, with a count of {stats['max_count']}.\n"
+        summary += f"4. Least Frequent Category: Conversely, the category '{stats['min_category']}' appears least frequently, with a count of {stats['min_count']}.\n"
+
+        # Add a note about the exclusion of 'NaN' categories, if applicable
+        if original_row_count > filtered_row_count:
+            summary += f"\nNote: The summary excludes 'NaN' or missing categories. {original_row_count - filtered_row_count} rows with 'NaN' categories were removed from the dataset."
+        # Additional Statistics
+        average_count = round(counts.mean(), 2)
+        summary += f"5. Average Count: The average count across all categories is {average_count}.\n"
+
+        count_range = stats['max_count'] - stats['min_count']
+        summary += f"6. Range: The range of the counts is {count_range}, indicating the spread of the data.\n"
+
+        standard_deviation = round(counts.std(), 2)
+        summary += f"7. Standard Deviation: The standard deviation of the counts is {standard_deviation}, providing an indication of the dispersion or variability in the data.\n"
+
+        # Interpretation
+        summary += "8. Interpretation: A high standard deviation might indicate a high level of variability in the data, whereas a low standard deviation suggests the opposite.\n"
+        
+        # Add debug messages to summary
+        debug_summary = "\n".join(debug_messages)
+        summary += f"\n\nExtended Summary:\n{debug_summary}"
 
         stats['summary'] = summary
         
@@ -266,10 +315,26 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
             'total_categories': len(categories)
         }
         
+        
+        # Generate a detailed summary for Pie Chart
+        summary = "Statistical Summary of Pie Chart:\n"
+        summary += f"1. Total Categories: The pie chart consists of {stats['total_categories']} distinct categories.\n"
+        summary += f"2. Total Count: The cumulative data points (or frequency) across all categories is {stats['total_count']}.\n"
+        summary += f"3. Dominant Category: The category '{stats['max_category']}' holds the largest share in the pie chart, constituting approximately {stats['max_proportion']}% of the total data.\n"
+        summary += f"4. Least Represented Category: On the other hand, the category '{stats['min_category']}' has the smallest share, making up about {stats['min_proportion']}% of the chart.\n"
+        summary += "5. Interpretation: A large gap between the maximum and minimum proportions may indicate a skewed distribution, while relatively even proportions suggest a more balanced distribution.\n"
+
+        # Add the average proportion if it provides valuable information
+        average_proportion = round(proportions.mean(), 2)
+        summary += f"6. Average Proportion: The average proportion across all categories is approximately {average_proportion}%. An individual category's proportion greater than this average may be considered 'above average' in its representation.\n"
         # Generate summary
-        summary = f"The category '{stats['max_category']}' occupies the largest proportion of {stats['max_proportion']}% in the pie chart. "
-        summary += f"The category '{stats['min_category']}' occupies the smallest proportion of {stats['min_proportion']}%. "
-        summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        #summary = f"The category '{stats['max_category']}' occupies the largest proportion of {stats['max_proportion']}% in the pie chart. "
+        #summary += f"The category '{stats['min_category']}' occupies the smallest proportion of {stats['min_proportion']}%. "
+        #summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        
+        # Add debug messages to summary
+        debug_summary = "\n".join(debug_messages)
+        summary += f"\n\nExtended Summary:\n{debug_summary}"
         
         stats['summary'] = summary
         
@@ -281,8 +346,10 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
             
 
             # Fill with zeros
-            df[x_var] = df[x_var].fillna(0)
-            df[y_var] = df[y_var].fillna(0)
+            #df[x_var] = df[x_var].fillna(0)
+            #df[y_var] = df[y_var].fillna(0)
+            # Drop rows where either x_var or y_var is NaN
+            df.dropna(subset=[x_var, y_var], inplace=True)
             # Calculate statistics
             x_values = df[x_var]
             y_values = df[y_var]
@@ -306,13 +373,22 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
                 'std_err': std_err
             }
 
-            # Generate summary
-            summary = f"The correlation between the variables is {round(stats['correlation'], 2)}. "
-            summary += f"The equation of the regression line is y = {round(stats['slope'], 2)}*x + {round(stats['intercept'], 2)}. "
-            summary += f"The r-squared value is {round(stats['r_value']**2, 2)}, the p-value is {round(stats['p_value'], 2)}, and the standard error is {round(stats['std_err'], 2)}."
+            # Generate a detailed summary
+            summary = "Statistical Analysis of Scatter Plot:\n"
+            summary += f"1. Correlation Coefficient: The Pearson correlation coefficient between the variables is approximately {round(stats['correlation'], 2)}. This value indicates the strength and direction of the linear relationship between the two variables. A value close to 1 indicates a strong positive correlation, a value close to -1 indicates a strong negative correlation, and a value close to 0 indicates no linear correlation.\n"
+            summary += f"2. Regression Equation: The equation of the line that best fits the data in a least squares sense is \(y = {round(stats['slope'], 2)}x + {round(stats['intercept'], 2)}\). This equation allows you to make predictions about the dependent variable based on the independent variable.\n"
+            summary += f"3. R-Squared Value: The coefficient of determination, or R-squared value, is {round(stats['r_value']**2, 2)}. This statistic indicates the proportion of the variance in the dependent variable that is predictable from the independent variable. A value closer to 1 indicates a better fit of the regression line to the data.\n"
+            summary += f"4. P-Value: The p-value for the hypothesis test of the slope is {round(stats['p_value'], 2)}. A small p-value (< 0.05) indicates strong evidence against the null hypothesis, suggesting that the slope is different from zero.\n"
+            summary += f"5. Standard Error: The standard error of the regression line is {round(stats['std_err'], 2)}. This statistic measures the accuracy with which the sample represents the population. A lower standard error indicates a more precise estimate.\n"
+                        
+            # Add debug messages to summary
+            debug_summary = "\n".join(debug_messages)
+            summary += f"\n\nExtended Summary:\n{debug_summary}"
+            
             stats['summary'] = summary
         else:
             return "Both x and y variables must be numerical for a scatter plot", None
+        
 
     else:
         return 'Invalid chart type', None

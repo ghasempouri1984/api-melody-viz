@@ -9,6 +9,7 @@ from scipy.stats import linregress
 
 
 def extract_variable_names(query):
+    debug_messages = []  # Initialize debug messages list
     select_pattern = r"SELECT\s+(?P<vars>.*?)\s*WHERE"
     select_vars = re.search(select_pattern, query, re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
@@ -17,12 +18,15 @@ def extract_variable_names(query):
         var_pattern = r'\?(?P<var>\w+)'
         variable_names = list(set(re.findall(var_pattern, select_vars_str)))
         print(f"Extracted variable names: {variable_names}")
-        return variable_names
+        debug_messages.append(f"Extracted variable names: {variable_names}")
+        return variable_names, debug_messages
     else:
+        debug_messages.append("No SELECT clause found in query.")
         print("No SELECT clause found in query.")
-        return []
+        return [], debug_messages
 
 def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatter_label: str, endpoint: str, format: str):
+    debug_messages = []  # Initialize the list for collecting debug messages
     # Initialize the SPARQL client.
     sparql = SPARQLWrapper(endpoint)
     sparql.setQuery(query)
@@ -35,13 +39,15 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     #print(json.dumps(results, indent=4))
 
     # Extract variable names from the query
-    variable_names = extract_variable_names(query)
+    variable_names, new_debug = extract_variable_names(query)
+    debug_messages.extend(new_debug)  # Add messages from extract_variable_names
 
     # Extract data from results
     data = results["results"]["bindings"]
     # Debugging: Print available keys in each entry of data
     print(f"Debugging: Available keys in data: {[list(entry.keys()) for entry in data]}")
-
+    debug_messages.append(f"Debugging: Available keys in data: {[list(entry.keys()) for entry in data]}")
+    
     # Prepare data for plotting.
     values = {var: [entry[var]["value"] if var in entry else None for entry in data] for var in variable_names}
     #print(f"Prepared values: {values}")
@@ -49,6 +55,10 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     # Debugging Step 1: Print values dictionary
     print("Debug Step 1 - Values Dictionary:")
     print(values)
+    
+    debug_messages.append("Debug Step 1 - Values Dictionary:")
+    debug_messages.append(str(values))
+    
     
     x_var, y_var = _identify_variables(variable_names, values, scatter_x, scatter_y)
     
@@ -58,7 +68,9 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
 
     # Add debug line here to check the variables being used to create the DataFrame
     print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
-
+    debug_messages.append(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
+    
+    
     # Create DataFrame and visualize it.
     if chart_type == 'scatter':
         x_data, y_data, labels = _prepare_scatter_data(x_var, y_var, scatter_label, values)
@@ -89,14 +101,17 @@ def plotChart(query: str, chart_type: str, scatter_x: str, scatter_y: str, scatt
     # Add this line to check the DataFrame before plotting
     print("DataFrame before plotting:")
     print(df)
-
+    debug_messages.append("DataFrame before plotting:\n")
+    debug_messages.append(str(df))
     # Add debugging statements here
     print("Data types in DataFrame before plotting:")
     print(df.dtypes)
     print("Checking for None or NaN values in DataFrame:")
     print(df.isna().sum())
+    debug_messages.append("Checking for None or NaN values in DataFrame:\n")
+    debug_messages.append(str(df.isna().sum()))
 
-    return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format)
+    return _create_visualization(df, x_var, y_var, scatter_label, chart_type, format, debug_messages)
 
 
 def _identify_variables(variable_names: List[str], values: dict, scatter_x: str, scatter_y: str) -> tuple:
@@ -196,7 +211,7 @@ def _convert_values_to_proper_type(values: list) -> list:
                 result.append(val)
     return result
 
-def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str):
+def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_label: str, chart_type: str, format: str, debug_messages=[]):
     
     # Debugging: Inspect the first few rows of the DataFrame
     print(f"Creating DataFrame with x_var: {x_var}, y_var: {y_var}")
@@ -235,6 +250,10 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
         summary = f"The category with the highest frequency is '{stats['max_category']}' with a count of {stats['max_count']}. "
         summary += f"The category with the lowest frequency is '{stats['min_category']}' with a count of {stats['min_count']}. "
         summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        
+        # Add debug messages to summary
+        debug_summary = "\n".join(debug_messages)
+        summary += f"\n\nDebugging Summary:\n{debug_summary}"
 
         stats['summary'] = summary
         
@@ -270,6 +289,10 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
         summary = f"The category '{stats['max_category']}' occupies the largest proportion of {stats['max_proportion']}% in the pie chart. "
         summary += f"The category '{stats['min_category']}' occupies the smallest proportion of {stats['min_proportion']}%. "
         summary += f"The total count across all {stats['total_categories']} categories is {stats['total_count']}."
+        
+        # Add debug messages to summary
+        debug_summary = "\n".join(debug_messages)
+        summary += f"\n\nDebugging Summary:\n{debug_summary}"
         
         stats['summary'] = summary
         
@@ -310,6 +333,11 @@ def _create_visualization(df: pd.DataFrame, x_var: str, y_var: str, scatter_labe
             summary = f"The correlation between the variables is {round(stats['correlation'], 2)}. "
             summary += f"The equation of the regression line is y = {round(stats['slope'], 2)}*x + {round(stats['intercept'], 2)}. "
             summary += f"The r-squared value is {round(stats['r_value']**2, 2)}, the p-value is {round(stats['p_value'], 2)}, and the standard error is {round(stats['std_err'], 2)}."
+            
+            # Add debug messages to summary
+            debug_summary = "\n".join(debug_messages)
+            summary += f"\n\nExtended Summary:\n{debug_summary}"
+            
             stats['summary'] = summary
         else:
             return "Both x and y variables must be numerical for a scatter plot", None

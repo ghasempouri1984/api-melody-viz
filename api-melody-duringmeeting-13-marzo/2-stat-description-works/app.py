@@ -3,7 +3,7 @@ import plotly.express as px
 from SPARQLWrapper import SPARQLWrapper, JSON
 from flask import Flask, request, Response , render_template
 from flask import jsonify
-import client
+import client3
 import numpy as np
 
 app = Flask(__name__)
@@ -32,7 +32,7 @@ def plot():
             scatter_label = req_data.get('scatter_label')
 
             #resp = client.plotChart(query, chart_type, x_var, y_var, scatter_label, endpoint, format)
-            fig, stats = client.plotChart(query, chart_type, x_var, y_var, scatter_label, endpoint, format)
+            fig, stats = client3.plotChart(query, chart_type, x_var, y_var, scatter_label, endpoint, format)
             #print("Stats before serialization: ", stats)
 
             #according to format we return different response
