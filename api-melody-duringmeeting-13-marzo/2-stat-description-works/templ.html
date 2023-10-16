@@ -1,0 +1,27 @@
+<!-- Structure and Styling -->
+<link rel="stylesheet" type="text/css" href="{{ stylesheet_url }}">
+
+<!-- Form Design -->
+<form id="data-visualization-form" class="custom-form">
+  <!-- Textarea for Data Query -->
+  <textarea id="data_query" name="data_query" rows="4" cols="50" required></textarea>
+
+  <!-- Dropdown for Visualization Type -->
+  <select id="visualization_type" name="visualization_type" required>
+    <option value="scatter">Scatter</option>
+  </select>
+
+  <!-- Text Fields for Variables -->
+  <input type="text" id="x_variable" name="x_variable">
+  <input type="text" id="y_variable" name="y_variable">
+  <!-- Additional fields can be added here -->
+
+  <!-- Dropdown for Output Format -->
+  <select id="output_format" name="output_format" required>
+    <option value="html">HTML</option>
+    <option value="png">PNG</option>
+  </select>
+
+  <!-- Optional Field for Data Endpoint -->
+  <input type="text" id="data_endpoint" name="data_endpoint" placeholder="Custom Data Endpoint">
+</form>
