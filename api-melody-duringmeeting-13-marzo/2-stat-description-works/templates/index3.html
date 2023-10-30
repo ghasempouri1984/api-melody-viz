@@ -158,7 +158,14 @@
                 error: function(error) {
                     // Hide spinner
                     //$("#loading-spinner").addClass("d-none");
-                    $("#result").text("An error occurred: " + error.responseJSON.error);
+                    let errorMsg = "An error occurred: " + error.responseJSON.error;
+
+                    // Specific message for SPARQL query timeouts
+                    if (error.responseJSON.error.includes("The read operation timed out")) {
+                        errorMsg += "<br><br>If the query is timing out, it's likely due to the high computational cost of gathering and processing the data. One way to limit the computational cost is to reduce the number of records returned. SPARQL offers the LIMIT clause for this purpose, which restricts the number of records returned by a query.\nHowever, if your query involves aggregating data with the COUNT() function, simply limiting the number of output records may not solve the timeout issue. A better approach might be to narrow down the search criteria.";
+                    }
+                    $("#result").text(errorMsg);
+                    //$("#result").text("An error occurred: " + error.responseJSON.error);
                 }
             });
             
